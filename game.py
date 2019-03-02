@@ -126,6 +126,7 @@ class Game():
     def __init__(self, name):
         self.game_name = name
         self.board = None
+        self.mover = None
         self.players = {}
         self.pieces = {}
 
@@ -149,6 +150,9 @@ class Game():
 
     def get_piece(self, p_id):
         return self.pieces[p_id]
+
+    def set_initial_player(self, p_id):
+        self.mover = self.get_player(p_id)
 
     def set_legal_moves_function(self, legal_moves):
         self.legal_moves_func = legal_moves

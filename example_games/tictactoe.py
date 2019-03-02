@@ -20,6 +20,7 @@ def legal_moves(piece, board, player):
 
 def make_move(move, piece, board, player):
     board[move] = piece
+    return 'X' if player == 'O' else 'O'
 
 
 def check_win(board, player):
@@ -31,7 +32,7 @@ def check_win(board, player):
         return True
     return False
 
-
+ttt.set_initial_player('X')
 ttt.set_legal_moves_function(legal_moves)
 ttt.set_make_moves_function(make_move)
 ttt.set_check_win_function(check_win)
