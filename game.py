@@ -35,17 +35,27 @@ class Board():
 
     def __setitem__(self, key, value):
         assert self.board is not None, "board has not been created yet"
-        self.board[key[1]][key[0]] = value
+        self.board[key[0]][key[1]] = value
+
+    def __getitem__(self, key):
+        assert self.board is not None, "board has not been created yet"
+        return self.board[key[0]][key[1]]
 
     def set_initial_state(self, state):
         if state == EMPTY_BOARD:
             self.board = [[None for _ in range(
                 self.dims[0])] for _ in range(self.dims[1])]
         else:
-            assert instanceof(state, list), "Board must be a 2D list"
-            assert instanceof(state[0], list), "Board must be a 2D list"
+            assert isinstance(state, list), "Board must be a 2D list"
+            assert isinstance(state[0], list), "Board must be a 2D list"
             assert len(state) == self.dims[1] and len(
                 state[0]) == self.dims[0], "board must be {}x{}".format(*self.dims)
+            for y in range(self.dims[1]):
+                for x in range(self.dims[0]):
+                    if state[y][x] is not None:
+                        assert state[y][x] in self.game.pieces, "{} is not a valid piece.".format(
+                            state[y][x])
+                        state[y][x] = self.game.pieces[state[y][x]](loc=(y, x))
             self.board = state
 
     def add_sidelined_piece(self, p_id, count):
@@ -58,7 +68,7 @@ class Board():
         for x in range(self.dims[0]):
             for y in range(self.dims[1]):
                 if self.board[y][x] is None:
-                    to_ret.append((x, y))
+                    to_ret.append((y, x))
         return to_ret
 
     def in_row(self, length, piece):
@@ -112,6 +122,25 @@ class Board():
                 return True
         return False
 
+    def move_in_dir(self, loc, delta):
+        if in_bounds((loc[0] + delta[0], loc[1] + delta[1]), self.dims):
+            return (loc[0] + delta[0], loc[1] + delta[1])
+        return None
+
+    def moves_visible_in_dir(self, loc, delta):
+        pointer = (loc[0] + delta[0], loc[1] + delta[1])
+        while in_bounds(pointer, self.dims) and self[pointer] is None:
+            yield pointer
+            pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
+        if in_bounds(pointer, self.dims):
+            yield pointer
+
+    def moves_in_radius(self, loc, r2):
+        for y in range(loc[0]-r2, loc[0]+r2+1):
+            for x in range(loc[1]-r2, loc[1]+r2+1):
+                if (loc[0]-y)**2 + (loc[1]-x)**2 <= r2 and in_bounds((y, x), self.dims):
+                    yield (y, x)
+
 
 class Player():
     def __init__(self, player_name):
@@ -121,12 +150,15 @@ class Player():
         return "Player -> name:{}".format(self.name)
 
 
-def Piece(piece_name, piece_sprite):
+def Piece(name, sprite, **kwargs):
     class p():
-        def __init__(self):
-            self.name = piece_name
-            self.sprite = piece_sprite
+        def __init__(self, loc=None):
+            self.name = name
+            self.sprite = sprite if sprite is not None else name
             self.uuid = uuid.uuid4()
+            self.loc = loc
+            self.moves_made = 0
+            self.__dict__.update(kwargs)
 
         def __eq__(self, other):
             return self.uuid == other.uuid
@@ -154,8 +186,9 @@ class Game():
             self.players[p_id] = Player(p_id)
         return self.players
 
-    def create_piece(self, piece_id, sprite):
-        self.pieces[piece_id] = Piece(piece_id, sprite)
+    def create_piece(self, piece_id, sprite=None, **kwargs):
+        self.pieces[piece_id] = Piece(
+            piece_id, sprite if sprite is not None else piece_id, **kwargs)
 
     def get_board(self):
         return self.board
@@ -170,7 +203,7 @@ class Game():
             p_id)
 
         self.board.sidelined_pieces[p_id] -= 1
-        return self.pieces[p_id]()
+        return self.pieces[p_id](loc=None)
 
     def set_initial_player(self, p_id):
         assert p_id in self.players, "{} is not a valid player".format(p_id)
@@ -183,6 +216,8 @@ class Game():
 
     def set_make_move_function(self, make_move):
         def mm(move, piece):
+            piece.moves_made += 1
+            piece.loc = move
             self.board.past.append(PastElement(piece, move))
             player_string = make_move(move, piece, self.board, self.mover)
             self.mover = self.get_player(player_string)
