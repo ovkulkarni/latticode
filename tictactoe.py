@@ -32,14 +32,31 @@ def check_win(board, player):
         return True
     return False
 
+
 ttt.set_initial_player('X')
 ttt.set_legal_moves_function(legal_moves)
-ttt.set_make_moves_function(make_move)
+ttt.set_make_move_function(make_move)
 ttt.set_check_win_function(check_win)
 
+"""
+print(ttt.board)
+for p in ttt.board.sidelined_pieces:
+    piece = ttt.get_piece(p)
+    print(p, ttt.legal_moves_func(piece))
 
-# make_move((0, 0), ttt.get_piece('X')(), brd, ttt.get_player('X'))
-# make_move((1, 1), ttt.get_piece('X')(), brd, ttt.get_player('X'))
-# make_move((2, 2), ttt.get_piece('X')(), brd, ttt.get_player('X'))
-# print(brd)
-# print(ttt.check_win_func(brd, ttt.get_player('X')))
+piece = ttt.get_piece('X')
+ttt.make_move_func((0, 0), piece)
+print(ttt.board)
+
+for p in ttt.board.sidelined_pieces:
+    piece = ttt.get_piece(p)
+    print(p, ttt.legal_moves_func(piece))
+
+piece = ttt.get_piece('X')
+ttt.make_move_func((1, 1), piece)
+ttt.make_move_func((2, 2), piece)
+print(ttt.board)
+
+print(ttt.check_win_func(ttt.get_player('O')))
+print(ttt.board.past)
+"""

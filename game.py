@@ -1,5 +1,6 @@
 import math
-from collections import defaultdict
+import uuid
+from collections import defaultdict, namedtuple
 
 # TODO: ADD ASSERTIONS
 # TODO: ADD BS DOCUMENTATION
@@ -8,28 +9,32 @@ from collections import defaultdict
 EMPTY_BOARD = 0
 INFINITY = math.inf
 
-### CLASSES ###
-
 
 def in_bounds(pos, dims):
     return (0 <= pos[0] < dims[0] and
             0 <= pos[1] < dims[1])
 
 
+PastElement = namedtuple('PastTuple', 'piece move')
+
+
 class Board():
     def __init__(self, game, x, y, *args):
+        assert isinstance(x, int) and isinstance(
+            y, int), "x and y must be integers"
         self.game = game
         self.board = None
         self.dims = (x, y)
         self.sidelined_pieces = defaultdict(lambda: 0)
+        self.past = []
 
     def __str__(self):
-        if self.board is None:
-            return "Board not yet set."
+        assert self.board is not None, "board has not been created yet"
         return "\n".join(' '.join('.' if x is None else str(x) for x in r)
                          for r in self.board)
 
     def __setitem__(self, key, value):
+        assert self.board is not None, "board has not been created yet"
         self.board[key[1]][key[0]] = value
 
     def set_initial_state(self, state):
@@ -37,9 +42,15 @@ class Board():
             self.board = [[None for _ in range(
                 self.dims[0])] for _ in range(self.dims[1])]
         else:
+            assert instanceof(state, list), "Board must be a 2D list"
+            assert instanceof(state[0], list), "Board must be a 2D list"
+            assert len(state) == self.dims[1] and len(
+                state[0]) == self.dims[0], "board must be {}x{}".format(*self.dims)
             self.board = state
 
     def add_sidelined_piece(self, p_id, count):
+        assert p_id in self.game.pieces, "{} is not a valid piece.".format(
+            p_id)
         self.sidelined_pieces[p_id] += count
 
     def open_spaces(self):
@@ -115,6 +126,10 @@ def Piece(piece_name, piece_sprite):
         def __init__(self):
             self.name = piece_name
             self.sprite = piece_sprite
+            self.uuid = uuid.uuid4()
+
+        def __eq__(self, other):
+            return self.uuid == other.uuid
 
         def __str__(self):
             return self.sprite
@@ -146,19 +161,34 @@ class Game():
         return self.board
 
     def get_player(self, p_id):
+        assert p_id in self.players, "{} is not a valid player".format(p_id)
         return self.players[p_id]
 
     def get_piece(self, p_id):
-        return self.pieces[p_id]
+        assert p_id in self.pieces, "{} is not a valid player".format(p_id)
+        assert self.board.sidelined_pieces[p_id] > 0, "You don't have any available {}s".format(
+            p_id)
+
+        self.board.sidelined_pieces[p_id] -= 1
+        return self.pieces[p_id]()
 
     def set_initial_player(self, p_id):
+        assert p_id in self.players, "{} is not a valid player".format(p_id)
         self.mover = self.get_player(p_id)
 
     def set_legal_moves_function(self, legal_moves):
-        self.legal_moves_func = legal_moves
+        def lmf(piece):
+            return legal_moves(piece, self.board, self.mover)
+        self.legal_moves_func = lmf
 
-    def set_make_moves_function(self, make_move):
-        self.make_moves_func = make_move
+    def set_make_move_function(self, make_move):
+        def mm(move, piece):
+            self.board.past.append(PastElement(piece, move))
+            player_string = make_move(move, piece, self.board, self.mover)
+            self.mover = self.get_player(player_string)
+        self.make_move_func = mm
 
     def set_check_win_function(self, check_win):
-        self.check_win_func = check_win
+        def wf(player):
+            return check_win(self.board, player)
+        self.check_win_func = wf
