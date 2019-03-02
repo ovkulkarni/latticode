@@ -2,12 +2,18 @@ import math
 from collections import defaultdict
 
 # TODO: ADD ASSERTIONS
+# TODO: ADD BS DOCUMENTATION
 
 ### CONSTANTS ###
 EMPTY_BOARD = 0
 INFINITY = math.inf
 
 ### CLASSES ###
+
+
+def in_bounds(pos, dims):
+    return (0 <= pos[0] < dims[0] and
+            0 <= pos[1] < dims[1])
 
 
 class Board():
@@ -43,6 +49,57 @@ class Board():
                 if self.board[y][x] is None:
                     to_ret.append((x, y))
         return to_ret
+
+    def in_row(self, length, piece):
+        for y in range(self.dims[1]):
+            count = 0
+            for x in range(self.dims[0]):
+                val = self.board[y][x]
+                if val is not None and val.name == piece:
+                    count += 1
+                else:
+                    count = 0
+                if count >= length:
+                    return True
+        return False
+
+    def in_col(self, length, piece):
+        for x in range(self.dims[0]):
+            count = 0
+            for y in range(self.dims[1]):
+                val = self.board[y][x]
+                if val is not None and val.name == piece:
+                    count += 1
+                else:
+                    count = 0
+                if count >= length:
+                    return True
+        return False
+
+    def in_diag(self, length, piece):
+        def check_delta(pos, d):
+            count = 0
+            pointer = pos
+            while in_bounds(pointer, self.dims):
+                if (self.board[pointer[1]][pointer[0]] is not None and
+                        self.board[pointer[1]][pointer[0]].name == piece):
+                    count += 1
+                else:
+                    count = 0
+                if count >= length:
+                    return True
+                pointer = (pointer[0] + d[0], pointer[1] + d[1])
+            return False
+
+        positions_to_check = [(0, y) for y in range(self.dims[1])]
+        positions_to_check += [(x, 0) for x in range(self.dims[0])]
+        positions_to_check += [(self.dims[0]-1, y)
+                               for y in range(self.dims[1])]
+
+        for pos in positions_to_check:
+            if check_delta(pos, (1, 1)) or check_delta(pos, (1, -1)):
+                return True
+        return False
 
 
 class Player():
@@ -92,3 +149,12 @@ class Game():
 
     def get_piece(self, p_id):
         return self.pieces[p_id]
+
+    def set_legal_moves_function(self, legal_moves):
+        self.legal_moves_func = legal_moves
+
+    def set_make_moves_function(self, make_move):
+        self.make_moves_func = make_move
+
+    def set_check_win_function(self, check_win):
+        self.check_win_func = check_win
