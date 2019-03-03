@@ -118,7 +118,7 @@
         }
         let width = deets.board[0].length;
         let height = deets.board.length;
-        let sq_width = Math.min(80, Math.floor($('#renderCanvas').width() / (width * 1.5)), Math.floor($("#renderCanvas").height() / (height * 1.5)));
+        let sq_width = Math.min(80, Math.floor($('#renderCanvas').width() / (width * 1.3)), Math.floor($("#renderCanvas").height() / (height * 1.3)));
         window.squares = {};
         for (let i = 0; i < width; i++) {
             for (let j = 0; j < height; j++) {
@@ -223,7 +223,7 @@
     function render_legal(deets) {
         let width = deets.board[0].length;
         let height = deets.board.length;
-        let sq_width = Math.min(80, Math.floor($('#renderCanvas').width() / (width * 1.5)), Math.floor($("#renderCanvas").height() / (height * 1.5)));
+        let sq_width = Math.min(80, Math.floor($('#renderCanvas').width() / (width * 1.3)), Math.floor($("#renderCanvas").height() / (height * 1.3)));
         let rad = sq_width / 8;
         for (let key in window.squares) {
             let g = window.squares[key];
