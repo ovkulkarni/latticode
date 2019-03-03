@@ -59,6 +59,15 @@ class Board():
                     to_ret.append((y, x))
         return to_ret
 
+    def open_spaces_gravity(self):
+        to_ret = []
+        for x in range(self.dims[0]):
+            for y in reversed(range(self.dims[1])):
+                if self.board[y][x] is None:
+                    to_ret.append((y, x))
+                    break
+        return to_ret
+
     def in_row(self, length, piece):
         for y in range(self.dims[1]):
             count = 0

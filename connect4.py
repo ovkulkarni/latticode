@@ -1,0 +1,41 @@
+import latticode
+
+ttt = latticode.Game('Connect 4')
+brd = ttt.create_board(7, 6)
+ttt.create_players('Blue', 'Red')
+
+ttt.create_piece('Blue', sprite='Blue')
+ttt.create_piece('Red', sprite='Red')
+
+ttt.set_initial_state(latticode.EMPTY_BOARD)
+ttt.add_sidelined_piece('Blue', count=latticode.INFINITY)
+ttt.add_sidelined_piece('Red', count=latticode.INFINITY)
+
+
+def legal_moves(piece, piece_loc, board):
+    if piece == board.current_player and piece_loc is None:
+        return board.open_spaces_gravity()
+    return []
+
+
+def make_move(piece, piece_loc, move, board):
+    new_board = board.copy()
+    new_board[move] = piece
+    new_board.current_player = 'Blue' if new_board.current_player == 'Red' else 'Red'
+    return new_board
+
+
+def check_win(board, player):
+    if board.in_row(length=4, piece=player):
+        return True
+    if board.in_col(length=4, piece=player):
+        return True
+    elif board.in_diag(length=4, piece=player):
+        return True
+    return False
+
+
+ttt.set_initial_player('Blue')
+ttt.set_legal_moves_function(legal_moves)
+ttt.set_make_move_function(make_move)
+ttt.set_check_win_function(check_win)
