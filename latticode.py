@@ -1,4 +1,5 @@
 from math import inf
+from copy import deepcopy
 from collections import defaultdict, namedtuple
 
 ### CONSTANTS ###
@@ -19,7 +20,7 @@ class Move():
 
 
 class Board():
-    def __init__(self, x, y, game):
+    def __init__(self, x, y, game, **kwargs):
         assert isinstance(x, int) and isinstance(
             y, int), "X and Y must be integers."
         self.board = None
@@ -27,6 +28,9 @@ class Board():
         self.sidelined_pieces = defaultdict(lambda: 0)
         self.current_player = None
         self.game = game
+
+        self.cloneable_attributes = kwargs.keys()
+        self.__dict__.update(kwargs)
 
     def __str__(self):
         assert self.board is not None, "Board has not been created yet."
@@ -46,6 +50,9 @@ class Board():
         brd.board = [[c for c in r] for r in self.board]
         brd.sidelined_pieces = self.sidelined_pieces.copy()
         brd.current_player = self.current_player
+
+        brd.__dict__.update({k: deepcopy(self.__dict__[k])
+                             for k in self.cloneable_attributes})
         return brd
 
     def in_bounds(self, loc):
@@ -155,8 +162,8 @@ class Game():
         self.piece_sprite = {}
         self.piece_owner = {}
 
-    def create_board(self, *args):
-        self.board = Board(*args, self)
+    def create_board(self, x, y, **kwargs):
+        self.board = Board(x, y, self, **kwargs)
         return self.board
 
     def create_players(self, *players):
