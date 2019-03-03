@@ -99,7 +99,7 @@
         project.clear();
         for (let sprite in deets.sprites) {
             let node = document.createElement('img');
-            node.src = window.image_base + deets.sprites[sprite] + '.png';
+            node.src = window.image_base + deets.sprites[sprite] + '.svg';
             node.id = sprite;
             document.getElementById("imageContainer").appendChild(node);
         }
@@ -126,7 +126,7 @@
                         let piece = deets.board[j][i];
                         let raster = new Raster(piece, i * sq_width + sq_width / 2, j * sq_width + sq_width / 2);
                         raster.name = piece;
-                        raster.scale(0.3);
+                        raster.scale(1.7);
                         group.raster_piece = piece;
                         group.addChild(raster);
                     }
@@ -169,7 +169,7 @@
             let name = imgs[index];
             let raster = new Raster(name, (width + 1.5) * sq_width, sq_width + (index - 0.5) * sq_width);
             raster.name = name;
-            raster.scale(0.3);
+            raster.scale(1.7);
             g.addChild(raster);
             g.raster_piece = name;
             g.onClick = function (e) {

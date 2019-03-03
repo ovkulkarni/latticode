@@ -18,29 +18,29 @@ for player in ('white', 'black'):
     game.create_piece('{}_queen'.format(player[0]), owner=player)
     game.create_piece('{}_king'.format(player[0]), owner=player)
 
-# brd.set_initial_state([
-#     ['b_rook', 'b_knight', 'b_bishop', 'b_queen',
-#         'b_king', 'b_bishop', 'b_knight', 'b_rook'],
-#     ['b_pawn']*8,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     ['w_pawn']*8,
-#     ['w_rook', 'w_knight', 'w_bishop', 'w_queen',
-#         'w_king', 'w_bishop', 'w_knight', 'w_rook'],
-# ])
-
 game.set_initial_state([
-    ['w_king']+[None]*7,
+    ['b_rook', 'b_knight', 'b_bishop', 'b_queen',
+        'b_king', 'b_bishop', 'b_knight', 'b_rook'],
+    ['b_pawn']*8,
     [None]*8,
     [None]*8,
     [None]*8,
     [None]*8,
-    [None]*8,
-    [None]*8,
-    ['b_rook']+[None]*7,
+    ['w_pawn']*8,
+    ['w_rook', 'w_knight', 'w_bishop', 'w_queen',
+        'w_king', 'w_bishop', 'w_knight', 'w_rook'],
 ])
+
+# game.set_initial_state([
+#     ['w_king']+[None]*7,
+#     [None]*8,
+#     [None]*8,
+#     [None]*8,
+#     [None]*8,
+#     [None]*8,
+#     [None]*8,
+#     ['b_rook']+[None]*7,
+# ])
 
 add = lambda *args: (sum(a[0] for a in args), sum(a[1] for a in args))
 
@@ -49,8 +49,8 @@ def enemy_player(p): return "black" if p[0] == 'w' else "white"
 
 
 DELTA_DICT = {
-    "queen": ((1, 1), (-1, 1), (1, -1), (-1, 1), (1, 0), (0, 1), (-1, 0), (0, -1)),
-    "bishop": ((1, 1), (-1, 1), (1, -1), (-1, 1)),
+    "queen": ((1, 1), (-1, 1), (1, -1), (-1, -1), (1, 0), (0, 1), (-1, 0), (0, -1)),
+    "bishop": ((1, 1), (-1, 1), (1, -1), (-1, -1)),
     "rook": ((1, 0), (0, 1), (-1, 0), (0, -1)),
     "knight": ((2, 1), (2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2), (-2, 1), (-2, -1))
 }
@@ -92,8 +92,8 @@ def semi_legal_moves(piece, piece_loc, board):
         if board[add(piece_loc, (1*COLOR, 0))] is None:
             locs.append(add(piece_loc, (1*COLOR, 0)))
             if piece_loc[0] in (1, 6) and board[add(piece_loc, (2 * COLOR, 0))] is None:
-                moves.append(Move(add(piece_loc, (2 * COLOR, 0)),move_type="pawn_rush",
-                ))
+                moves.append(Move(add(piece_loc, (2 * COLOR, 0)), move_type="pawn_rush",
+                                  ))
         # captures
         for delta in ((1 * COLOR, 1), (1 * COLOR, -1)):
             move = add(piece_loc, delta)
