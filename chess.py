@@ -1,6 +1,5 @@
 import latticode
-from latticode import Move
-from collections import namedtuple
+from latticode import Move, to_moves, to_locs
 
 game = latticode.Game('Chess')
 brd = game.create_board(8, 8,
@@ -10,7 +9,7 @@ brd = game.create_board(8, 8,
                         )
 game.create_players('white', 'black')
 
-for player in ('white', 'black'):
+for player in game.players:
     game.create_piece('{}_pawn'.format(player[0]), owner=player)
     game.create_piece('{}_knight'.format(player[0]), owner=player)
     game.create_piece('{}_bishop'.format(player[0]), owner=player)
@@ -31,21 +30,14 @@ game.set_initial_state([
         'w_king', 'w_bishop', 'w_knight', 'w_rook'],
 ])
 
-# game.set_initial_state([
-#     ['w_king']+[None]*7,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     [None]*8,
-#     ['b_rook']+[None]*7,
-# ])
 
-add = lambda *args: (sum(a[0] for a in args), sum(a[1] for a in args))
+def add(*args): return (sum(a[0] for a in args), sum(a[1] for a in args))
 
 
 def enemy_player(p): return "black" if p[0] == 'w' else "white"
+
+
+def clip(s): return None if s is None else s[s.index("_") + 1:]
 
 
 DELTA_DICT = {
@@ -56,90 +48,63 @@ DELTA_DICT = {
 }
 
 
-def semi_legal_moves(piece, piece_loc, board):
-    player = board.current_player
+def semi_legal_moves(piece, piece_loc, board, player=None):
+    player = player if player is not None else board.current_player
+    pt = clip(piece)
+    COLOR = 1 if player == 'black' else - 1
+    BACK = 0 if player == 'black' else 7
+    locs, moves = [], []
 
     if game.piece_owner[piece] != player:
         return []
 
-    pt = piece[piece.index("_") + 1:]
-
-    COLOR = 1 if player == 'black' else - 1
-    BACK = 0 if player == 'black' else 7
-
-    locs = []
-    moves = []
     if pt == "king":
-        locs.extend(
-            board.moves_in_radius(piece_loc, 2))
-        # O-O
-        if board.castle[player][0] and all(board[BACK, a] is None for a in (5, 6)):
+        locs.extend(board.locs_in_radius(piece_loc, 2))
+        if board.castle[player][0] and [clip(board[BACK, a]) for a in range(4, 8)] == ["king", None, None, "rook"]:
             moves.append(Move((BACK, 6), move_type="O-O"))
-        # O-O-O
-        if board.castle[player][1] and all(board[BACK, a] is None for a in (1, 2, 3)):
+        if board.castle[player][1] and [clip(board[BACK, a]) for a in range(5)] == ["rook", None, None, None, "king"]:
             moves.append(Move((BACK, 2), move_type="O-O-O"))
     if pt == "queen" or pt == "rook" or pt == "bishop":
         for delta in DELTA_DICT[pt]:
-            locs.extend(
-                board.moves_visible_in_dir(piece_loc, delta))
+            locs.extend(board.locs_visible_in_dir(piece_loc, delta))
     if pt == "knight":
-        for delta in DELTA_DICT[pt]:
-            move = board.move_in_dir(piece_loc, delta)
-            if move is not None:
-                locs.append(move)
+        locs.extend(board.locs_at_dirs(piece_loc, DELTA_DICT[pt]))
     if pt == "pawn":
-        # forward moves
         if board[add(piece_loc, (1*COLOR, 0))] is None:
             locs.append(add(piece_loc, (1*COLOR, 0)))
             if piece_loc[0] in (1, 6) and board[add(piece_loc, (2 * COLOR, 0))] is None:
-                moves.append(Move(add(piece_loc, (2 * COLOR, 0)), move_type="pawn_rush",
-                                  ))
-        # captures
+                moves.append(
+                    Move(add(piece_loc, (2 * COLOR, 0)), move_type="pawn_rush"))
         for delta in ((1 * COLOR, 1), (1 * COLOR, -1)):
             move = add(piece_loc, delta)
             if board.in_bounds(move) and board[move] is not None and game.piece_owner[board[move]] != player:
                 locs.append(add(piece_loc, delta))
+        for side in ((0, 1), (0, -1)):
+            captee_loc = add(piece_loc, side)
+            if captee_loc == board.enpassantable and game.piece_owner[board[captee_loc]] != player:
+                moves.append(Move(
+                    add(piece_loc, (1*COLOR, side[1])),
+                    move_type="enpassant",
+                    capture_loc=captee_loc
+                ))
 
-        # en passant
-        if piece_loc[0] in (3, 4):
-            for side in ((0, 1), (0, -1)):
-                captee_loc = add(piece_loc, side)
-                if board[captee_loc] is None:
-                    continue
-                if game.piece_owner[board[captee_loc]] != player and captee_loc == board.enpassantable:
-                    moves.append(Move(
-                        add(piece_loc, (1*COLOR, side[1])),
-                        move_type="enpassant",
-                        capture_loc=captee_loc
-                    ))
-
-    locs = filter(
-        lambda m: (board[m] is None or game.piece_owner[board[m]] != player), locs)
-
-    moves.extend([Move(loc) for loc in locs])
-    return moves
-
-
-def king_loc_of(board, player):
-    for piece, piece_loc in board.player_pieces(player):
-        if piece.endswith("king"):
-            return piece_loc
+    return moves + [Move(l) for l in locs if game.piece_owner.get(board[l]) != player]
 
 
 def in_check(board, player):
-    king_loc = king_loc_of(board, player)
+    king_loc = next(board.piece_locs("{}_king".format(player[0])))
     for piece, piece_loc in board.player_pieces(enemy_player(player)):
-        moves = semi_legal_moves(piece, piece_loc, board)
-        if king_loc in [m.loc for m in moves]:
+        if king_loc in to_locs(semi_legal_moves(piece, piece_loc, board, enemy_player(player))):
             return True
     return False
 
 
 def legal_moves(piece, piece_loc, board):
-    moves = semi_legal_moves(piece, piece_loc, board)
     checkless_moves = []
-    for move in moves:
+    for move in semi_legal_moves(piece, piece_loc, board):
         temp = make_move(piece, piece_loc, move, board)
+        if move.move_type in ("O-O", "O-O-O") and in_check(board, board.current_player):
+            continue
         if not in_check(temp, board.current_player):
             checkless_moves.append(move)
     return checkless_moves
@@ -149,18 +114,22 @@ def make_move(piece, piece_loc, move, board):
     BACK = 0 if board.current_player == 'black' else 7
     new_board = board.copy()
     new_board.enpassantable = None
+
     if move.move_type == "enpassant":
         new_board[move.capture_loc] = None
     if move.move_type == "pawn_rush":
         new_board.enpassantable = move.loc
     if move.move_type == "O-O":
-        new_board[BACK, 5] = new_board[BACK, 7]
-        new_board[BACK, 7] = None
+        new_board[BACK, 5], new_board[BACK, 7] = new_board[BACK, 7], None
     if move.move_type == "O-O-O":
-        new_board[BACK, 3] = new_board[BACK, 0]
-        new_board[BACK, 0] = None
+        new_board[BACK, 3], new_board[BACK, 0] = new_board[BACK, 0], None
     if piece.endswith("pawn") and move.loc[0] in (0, 7):
         piece = "{}_queen".format(piece[0])
+    if (piece.endswith("rook") and piece_loc[1] == 7) or piece.endswith("king"):
+        new_board.castle[board.current_player][0] = False
+    if (piece.endswith("rook") and piece_loc[1] == 0) or piece.endswith("king"):
+        new_board.castle[board.current_player][1] = False
+
     new_board[piece_loc] = None
     new_board[move.loc] = piece
     new_board.current_player = enemy_player(board.current_player)
@@ -168,10 +137,10 @@ def make_move(piece, piece_loc, move, board):
 
 
 def check_status(game, board):
-    for player in game.players:
-        king = king_loc_of(board, player)
-        if in_check(board, player) and len(legal_moves("{}_king".format(player[0]), king, board)) == 0:
-            return enemy_player(player)
+    if not sum(len(legal_moves(*t, board)) for t in board.player_pieces(board.current_player)):
+        if in_check(board, board.current_player):
+            return enemy_player(board.current_player)
+        return latticode.TIE
     return latticode.ONGOING
 
 
@@ -179,22 +148,3 @@ game.set_initial_player('white')
 game.set_legal_moves_function(legal_moves)
 game.set_make_move_function(make_move)
 game.set_check_status_function(check_status)
-
-# print(game.legal_moves_func("w_king", (0, 0)))
-
-# game.make_move_func("w_pawn", (6, 4), Move((4, 4), "pawn_rush"))
-# game.make_move_func("b_knight", (0, 1), Move((2, 0)))
-# game.make_move_func("w_pawn", (4, 4), Move((3, 4)))
-# game.make_move_func("b_pawn", (1, 3), Move((3, 3), "pawn_rush"))
-
-# mvs = game.legal_moves_func("w_pawn", (3, 4))
-# game.make_move_func("w_pawn", (3, 4), mvs[0])
-
-# game.make_move_func("b_bishop", (0, 2), Move((2, 4)))
-# game.make_move_func("w_pawn", (2, 3), Move((1, 4)))
-# game.make_move_func("b_queen", (0, 3), Move((2, 3)))
-# game.make_move_func("w_pawn", (1, 4), Move((0, 5)))
-# game.make_move_func("b_queen", (2, 3), Move((0, 5)))
-# game.make_move_func("w_queen", (7, 3), Move((6, 4)))
-# game.make_move_func("b_king", (0, 4), Move((0, 2), "O-O-O"))
-# print(game.board, "\n")

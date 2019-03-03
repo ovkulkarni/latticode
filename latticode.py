@@ -11,8 +11,12 @@ INFINITY = inf
 Delta = namedtuple('Delta', 'piece_name piece_loc move')
 
 
-def to_moves(moves_tuples):
-    return [Move(t) for t in moves_tuples]
+def to_moves(loc_tuples):
+    return [Move(t) for t in loc_tuples]
+
+
+def to_locs(move_objs):
+    return [m.loc for m in move_objs]
 
 
 class Move():
@@ -146,12 +150,15 @@ class Board():
             return True
         return False
 
-    def move_in_dir(self, loc, delta):
+    def loc_at_dir(self, loc, delta):
         if self.in_bounds((loc[0] + delta[0], loc[1] + delta[1])):
             return (loc[0] + delta[0], loc[1] + delta[1])
         return None
 
-    def moves_visible_in_dir(self, loc, delta):
+    def locs_at_dirs(self, loc, deltas):
+        return (a for a in (self.loc_at_dir(loc, d) for d in deltas) if a is not None)
+
+    def locs_visible_in_dir(self, loc, delta):
         pointer = (loc[0] + delta[0], loc[1] + delta[1])
         while self.in_bounds(pointer) and self[pointer] is None:
             yield pointer
@@ -159,7 +166,7 @@ class Board():
         if self.in_bounds(pointer):
             yield pointer
 
-    def moves_in_radius(self, loc, r2):
+    def locs_in_radius(self, loc, r2):
         for y in range(loc[0]-r2, loc[0]+r2+1):
             for x in range(loc[1]-r2, loc[1]+r2+1):
                 if (loc[0]-y)**2 + (loc[1]-x)**2 <= r2 and self.in_bounds((y, x)):
@@ -170,6 +177,12 @@ class Board():
             for y in range(self.dims[1]):
                 if self[(y, x)] is not None and self.game.piece_owner[self[(y, x)]] == player_name:
                     yield (self[(y, x)], (y, x))
+
+    def piece_locs(self, *pieces):
+        for x in range(self.dims[0]):
+            for y in range(self.dims[1]):
+                if self[(y, x)] in pieces:
+                    yield (y, x)
 
     def all_filled(self):
         for x in range(self.dims[0]):
