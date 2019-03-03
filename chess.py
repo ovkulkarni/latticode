@@ -32,16 +32,14 @@ for player in ('white', 'black'):
 # ])
 
 game.set_initial_state([
-    ['b_rook', 'b_knight', 'b_bishop', 'b_queen',
-        'b_king', 'b_bishop', 'b_knight', 'b_rook'],
-    ['b_pawn']*8,
+    ['w_king']+[None]*7,
     [None]*8,
     [None]*8,
     [None]*8,
     [None]*8,
-    ['w_pawn']*8,
-    ['w_rook', 'w_knight', 'w_bishop', 'w_queen',
-        'w_king', 'w_bishop', 'w_knight', 'w_rook'],
+    [None]*8,
+    [None]*8,
+    ['b_rook']+[None]*7,
 ])
 
 add = lambda *args: (sum(a[0] for a in args), sum(a[1] for a in args))
@@ -131,7 +129,7 @@ def king_loc_of(board, player):
 def in_check(board, player):
     king_loc = king_loc_of(board, player)
     for piece, piece_loc in board.player_pieces(enemy_player(player)):
-        moves = semi_legal_moves(piece, board, enemy_player(player))
+        moves = semi_legal_moves(piece, piece_loc, board)
         if king_loc in [m.loc for m in moves]:
             return True
     return False
@@ -142,7 +140,7 @@ def legal_moves(piece, piece_loc, board):
     checkless_moves = []
     for move in moves:
         temp = make_move(piece, piece_loc, move, board)
-        if not in_check(temp, player):
+        if not in_check(temp, board.current_player):
             checkless_moves.append(move)
     return checkless_moves
 
@@ -178,9 +176,11 @@ def check_status(game, board):
 
 
 game.set_initial_player('white')
-game.set_legal_moves_function(semi_legal_moves)
+game.set_legal_moves_function(legal_moves)
 game.set_make_move_function(make_move)
 game.set_check_status_function(check_status)
+
+# print(game.legal_moves_func("w_king", (0, 0)))
 
 # game.make_move_func("w_pawn", (6, 4), Move((4, 4), "pawn_rush"))
 # game.make_move_func("b_knight", (0, 1), Move((2, 0)))
@@ -197,4 +197,4 @@ game.set_check_status_function(check_status)
 # game.make_move_func("b_queen", (2, 3), Move((0, 5)))
 # game.make_move_func("w_queen", (7, 3), Move((6, 4)))
 # game.make_move_func("b_king", (0, 4), Move((0, 2), "O-O-O"))
-print(game.board, "\n")
+# print(game.board, "\n")
