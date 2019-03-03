@@ -181,9 +181,23 @@ class Board():
     def capture_diag(self, piece_loc, move):
         delta = (1 if piece_loc[0] - move[0] < 0 else -1,
                  1 if piece_loc[1] - move[1] < 0 else -1)
+        captured = False
         pointer = piece_loc
         while (pointer != move):
+            if self.board[pointer[0]][pointer[0]] is not None and pointer != piece_loc:
+                captured = True
             self.board[pointer[0]][pointer[1]] = None
+            pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
+        return captured
+
+    def locs_capturable(self, loc, delta):
+        pointer = (loc[0] + delta[0], loc[1] + delta[1])
+        seen = 0
+        while self.in_bounds(pointer) and seen < 2:
+            if self[pointer] is None:
+                yield pointer, seen != 0
+            else:
+                seen += 1
             pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
 
 

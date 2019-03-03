@@ -20,7 +20,7 @@ def legal_moves(piece, piece_loc, board):
 
 def make_move(piece, piece_loc, move, board):
     new_board = board.copy()
-    new_board[move] = piece
+    new_board[move.loc] = piece
     new_board.current_player = 'Blue' if new_board.current_player == 'Red' else 'Red'
     return new_board
 
