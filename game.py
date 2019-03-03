@@ -2,7 +2,6 @@ import math
 import uuid
 from collections import defaultdict, namedtuple
 
-# TODO: ADD ASSERTIONS
 # TODO: ADD BS DOCUMENTATION
 
 ### CONSTANTS ###
@@ -40,6 +39,13 @@ class Board():
     def __getitem__(self, key):
         assert self.board is not None, "board has not been created yet"
         return self.board[key[0]][key[1]]
+
+    def clone(self):
+        brd = Board(self.game, *self.dims)
+        brd.sidelined_pieces = self.sidelined_pieces.copy()
+        brd.board = [[None if c is None else c.clone() for c in r]
+                     for r in self.board]
+        return brd
 
     def set_initial_state(self, state):
         if state == EMPTY_BOARD:
@@ -141,24 +147,29 @@ class Board():
                 if (loc[0]-y)**2 + (loc[1]-x)**2 <= r2 and in_bounds((y, x), self.dims):
                     yield (y, x)
 
-
-class Player():
-    def __init__(self, player_name):
-        self.name = player_name
-
-    def __str__(self):
-        return "Player -> name:{}".format(self.name)
+    def player_pieces(self, player_name):
+        for x in range(self.dims[0]):
+            for y in range(self.dims[1]):
+                if self[(x, y)] is not None and self[(x, y)].owner == player_name:
+                    yield self[(x, y)]
 
 
-def Piece(name, sprite, **kwargs):
+def Piece(name, sprite, owner, **kwargs):
     class p():
         def __init__(self, loc=None):
             self.name = name
             self.sprite = sprite if sprite is not None else name
+            self.owner = owner
             self.uuid = uuid.uuid4()
             self.loc = loc
             self.moves_made = 0
             self.__dict__.update(kwargs)
+
+        def clone(self):
+            piece = p(self.loc)
+            piece.moves_made = self.moves_made
+            piece.uuid = self.uuid
+            return piece
 
         def __eq__(self, other):
             return self.uuid == other.uuid
@@ -174,40 +185,34 @@ class Game():
         self.game_name = name
         self.board = None
         self.mover = None
-        self.players = {}
+        self.players = []
         self.pieces = {}
 
     def create_board(self, *args):
         self.board = Board(self, *args)
         return self.board
 
-    def create_players(self, *player_ids):
-        for p_id in player_ids:
-            self.players[p_id] = Player(p_id)
+    def create_players(self, *players):
+        self.players.extend(players)
         return self.players
 
-    def create_piece(self, piece_id, sprite=None, **kwargs):
+    def create_piece(self, piece_id, sprite=None, owner=None, **kwargs):
         self.pieces[piece_id] = Piece(
-            piece_id, sprite if sprite is not None else piece_id, **kwargs)
+            piece_id, sprite if sprite is not None else piece_id, owner, **kwargs)
 
     def get_board(self):
         return self.board
 
-    def get_player(self, p_id):
-        assert p_id in self.players, "{} is not a valid player".format(p_id)
-        return self.players[p_id]
-
     def get_piece(self, p_id):
-        assert p_id in self.pieces, "{} is not a valid player".format(p_id)
+        assert p_id in self.pieces, "{} is not a valid piece".format(p_id)
         assert self.board.sidelined_pieces[p_id] > 0, "You don't have any available {}s".format(
             p_id)
-
-        self.board.sidelined_pieces[p_id] -= 1
         return self.pieces[p_id](loc=None)
 
-    def set_initial_player(self, p_id):
-        assert p_id in self.players, "{} is not a valid player".format(p_id)
-        self.mover = self.get_player(p_id)
+    def set_initial_player(self, player):
+        assert player in self.players, "{} is not a valid player".format(
+            player)
+        self.mover = player
 
     def set_legal_moves_function(self, legal_moves):
         def lmf(piece):
@@ -216,11 +221,13 @@ class Game():
 
     def set_make_move_function(self, make_move):
         def mm(move, piece):
+            if piece.loc is None:  # piece just placed
+                self.board.sidelined_pieces[piece.name] -= 1
+
             piece.moves_made += 1
             piece.loc = move
             self.board.past.append(PastElement(piece, move))
-            player_string = make_move(move, piece, self.board, self.mover)
-            self.mover = self.get_player(player_string)
+            self.mover = make_move(move, piece, self.board, self.mover)
         self.make_move_func = mm
 
     def set_check_win_function(self, check_win):
