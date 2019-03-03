@@ -197,7 +197,7 @@ class Board():
         captured = False
         pointer = piece_loc
         while (pointer != move):
-            if self.board[pointer[0]][pointer[0]] is not None and pointer != piece_loc:
+            if self.board[pointer[0]][pointer[1]] is not None and pointer != piece_loc:
                 captured = True
             self.board[pointer[0]][pointer[1]] = None
             pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
