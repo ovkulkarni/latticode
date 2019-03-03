@@ -26,5 +26,5 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('create/', CreateView.as_view(), name='create_game'),
     path('game/<int:id>/', GameView.as_view(), name='view_game'),
-    path('game/<uuid:room_id>/', PlayView.as_view(), name='play_game'),
+    path('play/<uuid:room_id>/', PlayView.as_view(), name='play_game'),
 ]

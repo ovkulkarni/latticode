@@ -6,6 +6,15 @@
         width: 100%;
         height: 80vh;
     }
+
+    .padder {
+        position: relative;
+    }
+
+    .current-player {
+        position: absolute;
+        bottom: 0;
+    }
 </style>
 {% endblock %}
 {% block ultimate_content %}
@@ -28,11 +37,12 @@
                 <div style="height: 70vh" name="code_input" id="editor"></div>
                 <textarea class="d-none" name="code_input">{{ inp }}</textarea>
                 <button type="submit" class="btn btn-success mt-2">Save</button>
+                <a class="btn btn-primary mt-2 text-white" id='share' target='_blank'>Play with a friend</a>
             </form>
         </div>
         {% endif %}
         <div class="col">
-            <div class="padder"></div>
+            <div class="padder"><span class="current-player"></span></div>
             <canvas id="renderCanvas" resize></canvas>
         </div>
     </div>
@@ -44,6 +54,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ext-language_tools.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.0/paper-core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+{% if not hide_editor %}
 <script>
     ace.require("ace/ext/language_tools");
     var editor = ace.edit("editor");
@@ -62,6 +73,7 @@
         editor.getSession().setValue($('textarea[name="code_input"]').val(), 1);
     });
 </script>
+{% endif %}
 <script>
     function updateSelected() {
         for (let group of window.sidelined) {
@@ -96,6 +108,7 @@
         }
     }
     function render(deets) {
+        $('.current-player').text(`Current Player: ${deets.current}`)
         project.clear();
         for (let sprite in deets.sprites) {
             let node = document.createElement('img');
@@ -105,7 +118,7 @@
         }
         let width = deets.board[0].length;
         let height = deets.board.length;
-        let sq_width = Math.min(100, Math.floor($('#renderCanvas').width() / (width * 1.5)));
+        let sq_width = Math.min(80, Math.floor($('#renderCanvas').width() / (width * 1.5)));
         window.squares = {};
         for (let i = 0; i < width; i++) {
             for (let j = 0; j < height; j++) {
@@ -126,7 +139,11 @@
                         let piece = deets.board[j][i];
                         let raster = new Raster(piece, i * sq_width + sq_width / 2, j * sq_width + sq_width / 2);
                         raster.name = piece;
-                        raster.scale(1.7);
+                        // curr_size = Math.max(raster.height, raster.width);
+                        if (raster.name.length === 1)
+                            raster.setSize(new Size(sq_width * 0.75, sq_width * 0.75))
+                        else
+                            raster.setSize(new Size(sq_width * 0.95, sq_width * 0.95))
                         group.raster_piece = piece;
                         group.addChild(raster);
                     }
@@ -145,7 +162,7 @@
                     }
                     group.onClick = function (e) {
                         if (window.selected && window.selected.raster_piece && group._namedChildren['legal_move']) {
-                            window.sock.send(JSON.stringify({ 'action': 'make_move', 'move_x': group.x, 'move_y': group.y, 'x': window.selected.x, 'y': window.selected.y, 'name': window.selected.raster_piece }))
+                            window.sock.send(JSON.stringify({ 'action': 'make_move', 'ident': window.my_identifier, 'move_x': group.x, 'move_y': group.y, 'x': window.selected.x, 'y': window.selected.y, 'name': window.selected.raster_piece }))
                         } else {
                             window.selected = group;
                             if (group.raster_piece)
@@ -169,7 +186,10 @@
             let name = imgs[index];
             let raster = new Raster(name, (width + 1.5) * sq_width, sq_width + (index - 0.5) * sq_width);
             raster.name = name;
-            raster.scale(1.7);
+            if (raster.name.length === 1)
+                raster.setSize(new Size(sq_width * 0.75, sq_width * 0.75))
+            else
+                raster.setSize(new Size(sq_width * 0.95, sq_width * 0.95))
             g.addChild(raster);
             g.raster_piece = name;
             g.onClick = function (e) {
@@ -269,11 +289,15 @@
             });
         }
         window.uuidv4 = uuidv4;
-        let gameSocket = new WebSocket('ws://' + window.location.host + '/ws/game/' + window.uuidv4() + '/')
+        window.room_id = `{% if room_id %}{{ room_id }}{% else %}${window.uuidv4()}{% endif %}`;
+        window.my_identifier = window.uuidv4();
+        let gameSocket = new WebSocket((location.protocol === 'https' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + window.room_id + '/?id=' + window.my_identifier);
+        $('#share').attr('href', '/play/' + window.room_id + '/');
         gameSocket.onmessage = function (e) {
             let data = JSON.parse(e.data);
             switch (data.command) {
                 case "render":
+                    console.log(data)
                     render(data)
                     break;
                 case "legal":
@@ -284,6 +308,9 @@
                     break;
                 case "error":
                     Swal.fire('Oops!', '<pre>' + data.message + '</pre>', 'error')
+                    break;
+                case "request_update":
+                    window.sock.send(JSON.stringify({ 'action': 'update' }))
                     break;
                 default:
                     console.log(data);

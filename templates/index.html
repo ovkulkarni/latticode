@@ -1,3 +1,55 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Index{% endblock %}
+{% block css %}
+<style>
+    ul.task-items {
+        padding-left: 0px;
+    }
+
+    ul.task-items li.item {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        background: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    ul.task-items li.item:hover {
+        transform: scale(1.03);
+    }
+
+    ul.task-items li.item .task {
+        display: flex;
+        align-items: center;
+    }
+
+    ul.task-items li.item .task .name {
+        background: #eeeeee;
+        margin-left: 20px;
+        border-radius: 15px;
+    }
+</style>
+{% endblock %}
+{% block title %}Latticode{% endblock %}
+{% block content %}
+{% if games %}
+{% for game in games %}
+<ul class="task-items">
+    <li class="item" data-id="{{ game.id }}">
+        <div class=" task"">
+        <h3 style=" margin: 0">{{ game.name }}</h3>
+        </div>
+    </li>
+</ul>
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block js %}
+<script>
+    $('.item').click(function (e) {
+        e.preventDefault();
+        window.location.href = "//" + window.location.host + "/game/" + $(this).data('id');
+    })
+</script>
+{% endblock %}

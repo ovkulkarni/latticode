@@ -39,7 +39,10 @@ class LogoutView(AuthLogoutView):
 
 class IndexView(View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'index.html', {})
+        context = {}
+        if request.user.is_authenticated:
+            context['games'] = Game.objects.filter(user=request.user)
+        return render(request, 'index.html', context)
 
 
 class GameView(LoginRequiredMixin, View):
@@ -63,7 +66,7 @@ class GameView(LoginRequiredMixin, View):
         return redirect(reverse('view_game', kwargs={'id': game_model.pk}))
 
 
-class PlayView(LoginRequiredMixin, View):
+class PlayView(View):
     def get(self, request, *args, **kwargs):
         return render(request, 'create.html', {'hide_editor': True, 'room_id': kwargs.pop('room_id')})
 
