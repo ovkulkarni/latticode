@@ -17,12 +17,9 @@ droughts.set_initial_state([
     [None, 'w_token'] * 5,
     [None] * 10,
     [None] * 10,
-    [None] * 10,
-    [None] * 10,
-    [None] * 10,
-    # ['b_token', None] * 5,
-    # [None, 'b_token'] * 5,
-    # ['b_token', None] * 5,
+    ['b_token', None] * 5,
+    [None, 'b_token'] * 5,
+    ['b_token', None] * 5,
     [None, 'b_token'] * 5,
 ])
 
@@ -91,7 +88,7 @@ def legal_moves(piece, piece_loc, board):
 
 def make_move(piece, piece_loc, move, board):
     new_board = board.copy()
-    if piece.endswith('_token') and move.loc[0] == 9 if piece[0] == 'w' else 0:
+    if piece.endswith('_token') and move.loc[0] == (9 if piece[0] == 'w' else 0):
         piece = piece[0] + '_kingtoken'
     new_board[move.loc] = piece
     is_capture = new_board.capture_diag(piece_loc, move.loc)
@@ -99,6 +96,7 @@ def make_move(piece, piece_loc, move, board):
     if is_capture:
         new_board.jumped_piece = (piece, move.loc)
         lm = legal_moves(piece, move.loc, new_board)
+
         if [m for m in lm if new_board.copy().capture_diag(move.loc, m.loc)]:
             return new_board
 
@@ -108,6 +106,19 @@ def make_move(piece, piece_loc, move, board):
 
 
 def check_status(game, board):
+    white_pieces = board.player_pieces('White')
+    black_pieces = board.player_pieces('Black')
+
+    if not white_pieces:
+        return 'Black'
+    elif not black_pieces:
+        return 'White'
+
+    if all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in white_pieces):
+        return 'Black'
+    elif all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in black_pieces):
+        return 'White'
+
     return latticode.ONGOING
 
 
