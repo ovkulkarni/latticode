@@ -282,6 +282,9 @@
                 case "game_over":
                     set_game_over(data)
                     break;
+                case "error":
+                    Swal.fire('Oops!', '<pre>' + data.message + '</pre>', 'error')
+                    break;
                 default:
                     console.log(data);
                     console.log('oof we dead');
