@@ -269,7 +269,7 @@
             });
         }
         window.uuidv4 = uuidv4;
-        let gameSocket = new WebSocket('wss://' + window.location.host + '/ws/game/' + window.uuidv4() + '/')
+        let gameSocket = new WebSocket('ws://' + window.location.host + '/ws/game/' + window.uuidv4() + '/')
         gameSocket.onmessage = function (e) {
             let data = JSON.parse(e.data);
             switch (data.command) {
