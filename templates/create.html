@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load static %}
+{% block css %}
+<style>
+    #renderCanvas {
+        width: 100%;
+        height: 80vh;
+    }
+</style>
+{% endblock %}
+{% block ultimate_content %}
+<div class="container-fluid">
+    <div class="row">
+        {% if not hide_editor %}
+        <div class="col-lg-5 offset-lg-1">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    {% if not game_model %}
+                    <label for="game_name">Name</label>
+                    {% else %}
+                    <h3>{{ game_model.name }}</h3>
+                    {% endif %}
+                    <input class="form-control" id="game_name" placeholder="Name" name="name"
+                        {% if game_model %}value="{{ game_model.name }}" type="hidden" {% else %} type="text"
+                        {% endif %}>
+                </div>
+                <div style="height: 70vh" name="code_input" id="editor"></div>
+                <textarea class="d-none" name="code_input">{{ inp }}</textarea>
+                <button type="submit" class="btn btn-success mt-2">Save</button>
+            </form>
+        </div>
+        {% endif %}
+        <div class="col">
+            <div class="padder"></div>
+            <canvas id="renderCanvas" resize></canvas>
+        </div>
+    </div>
+    <div id="imageContainer" class="d-none"></div>
+</div>
+{% endblock %}
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ext-language_tools.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.0/paper-core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+<script>
+    ace.require("ace/ext/language_tools");
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/tomorrow");
+    editor.session.setMode("ace/mode/python");
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: false,
+        enableLiveAutocompletion: true
+    });
+    var textarea = $('textarea[name="code_input"]');
+    editor.getSession().on("change", function () {
+        textarea.val(editor.getSession().getValue());
+    });
+    $(document).ready(function () {
+        editor.getSession().setValue($('textarea[name="code_input"]').val(), 1);
+    });
+</script>
+<script>
+    function updateSelected() {
+        for (let group of window.sidelined) {
+            if (window.selected && window.selected._id === group._id) {
+                if (group.raster_piece) {
+                    let raster = group._namedChildren[group.raster_piece][0]
+                    raster.shadowColor = new Color(0, 0, 1);
+                    raster.shadowBlur = 12;
+                }
+            } else {
+                if (group.raster_piece) {
+                    let raster = group._namedChildren[group.raster_piece][0]
+                    raster.shadowBlur = 0;
+                }
+            }
+        }
+        for (let key in window.squares) {
+            let group = window.squares[key]
+            if (window.selected && window.selected._id === group._id) {
+                if (group.raster_piece) {
+                    let raster = group._namedChildren[group.raster_piece][0]
+                    raster.shadowColor = new Color(0, 0, 1);
+                    raster.shadowBlur = 12;
+                }
+            }
+            else {
+                if (group.raster_piece) {
+                    let raster = group._namedChildren[group.raster_piece][0]
+                    raster.shadowBlur = 0;
+                }
+            }
+        }
+    }
+    function render(deets) {
+        project.clear();
+        for (let sprite in deets.sprites) {
+            let node = document.createElement('img');
+            node.src = window.image_base + deets.sprites[sprite] + '.png';
+            node.id = sprite;
+            document.getElementById("imageContainer").appendChild(node);
+        }
+        let width = deets.board[0].length;
+        let height = deets.board.length;
+        let sq_width = Math.min(100, Math.floor($('#renderCanvas').width() / (width * 1.5)));
+        window.squares = {};
+        for (let i = 0; i < width; i++) {
+            for (let j = 0; j < height; j++) {
+                if (!window.squares[[i, j]]) {
+                    let group = new Group();
+                    group.x = i;
+                    group.y = j;
+                    let rect = new Path.Rectangle(i * sq_width, j * sq_width, sq_width, sq_width);
+                    rect.name = `rect_${i},${j}`
+                    rect.strokeWidth = 0;
+                    if ((i + j) % 2 == 0) {
+                        rect.fillColor = '#a3b4a2';
+                    }
+                    else {
+                        rect.fillColor = '#38686a';
+                    }
+                    if (deets.board[j][i] !== null) {
+                        let piece = deets.board[j][i];
+                        let raster = new Raster(piece, i * sq_width + sq_width / 2, j * sq_width + sq_width / 2);
+                        raster.name = piece;
+                        raster.scale(0.3);
+                        group.raster_piece = piece;
+                        group.addChild(raster);
+                    }
+                    group.insertChild(0, rect);
+                    group.onMouseEnter = function (e) {
+                        group.strokeColor = 'yellow';
+                        group.strokeWidth = 2;
+                        if (group.raster_piece)
+                            group._namedChildren[group.raster_piece][0].scale(1.05)
+                        group.bringToFront()
+                    }
+                    group.onMouseLeave = function (e) {
+                        group.strokeWidth = 0;
+                        if (group.raster_piece)
+                            group._namedChildren[group.raster_piece][0].scale(1 / 1.05)
+                    }
+                    group.onClick = function (e) {
+                        if (window.selected && window.selected.raster_piece && group._namedChildren['legal_move']) {
+                            window.sock.send(JSON.stringify({ 'action': 'make_move', 'move_x': group.x, 'move_y': group.y, 'x': window.selected.x, 'y': window.selected.y, 'name': window.selected.raster_piece }))
+                        } else {
+                            window.selected = group;
+                            if (group.raster_piece)
+                                window.sock.send(JSON.stringify({ 'action': 'get_legal', 'x': group.x, 'y': group.y, 'name': group.raster_piece }))
+                            updateSelected();
+                        }
+                    }
+                    window.squares[[i, j]] = group;
+                }
+            }
+        }
+        let imgs = deets.sidelined;
+        window.sidelined = [];
+        for (let index in imgs) {
+            let g = new Group();
+            g.x = null;
+            g.y = null;
+            let rect = new Path.Rectangle((width + 1) * sq_width, sq_width + (index - 1) * sq_width, sq_width, sq_width);
+            rect.fillColor = 'white';
+            g.addChild(rect);
+            let name = imgs[index];
+            let raster = new Raster(name, (width + 1.5) * sq_width, sq_width + (index - 0.5) * sq_width);
+            raster.name = name;
+            raster.scale(0.3);
+            g.addChild(raster);
+            g.raster_piece = name;
+            g.onClick = function (e) {
+                window.selected = g;
+                if (g.raster_piece) {
+                    window.sock.send(JSON.stringify({ 'action': 'get_legal', 'x': g.x, 'y': g.y, 'name': g.raster_piece }))
+                }
+                updateSelected();
+            }
+            g.onMouseEnter = function (e) {
+                if (g.raster_piece)
+                    g._namedChildren[g.raster_piece][0].scale(1.05)
+                g.bringToFront()
+            }
+            g.onMouseLeave = function (e) {
+                if (g.raster_piece)
+                    g._namedChildren[g.raster_piece][0].scale(1 / 1.05)
+            }
+            window.sidelined.push(g);
+        }
+        for (let i in deets.board) {
+            row = deets.board[i]
+            for (let j in row) {
+                piece = row[j];
+                if (piece !== null) {
+                }
+            }
+        }
+        view.draw();
+    }
+    function render_legal(deets) {
+        let width = deets.board[0].length;
+        let height = deets.board.length;
+        let sq_width = Math.min(100, Math.floor($('#renderCanvas').width() / (width * 1.5)));
+        let rad = sq_width / 8;
+        for (let key in window.squares) {
+            let g = window.squares[key];
+            let flag = true;
+            for (let move of deets.positions) {
+                if (move.toString() === [g.y, g.x].toString()) {
+                    if (!g._namedChildren['legal_move']) {
+                        let cir = new Path.Circle(g._namedChildren[`rect_${g.x},${g.y}`][0].toShape().center, rad);
+                        cir.name = 'legal_move';
+                        cir.fillColor = new Color(0, 0, 1, 0.5);
+                        cir.strokeWidth = 0;
+                        g.addChild(cir);
+                    }
+                    flag = false;
+                }
+            }
+            if (flag) {
+                if (g._namedChildren['legal_move'])
+                    g._namedChildren['legal_move'][0].remove();
+            }
+        }
+        view.draw();
+    }
+
+    function set_game_over(deets) {
+        for (let key in window.squares) {
+            let g = window.squares[key];
+            g.onClick = undefined;
+            g.onMouseEnter = undefined;
+            g.onMouseLeave = undefined;
+        }
+        for (let g in window.sidelined) {
+            g.onClick = undefined;
+            g.onMouseEnter = undefined;
+            g.onMouseLeave = undefined;
+        }
+        if (deets.result === "Tie") {
+            Swal.fire("It's a tie!", 'Game over.', 'question');
+        } else {
+            Swal.fire(
+                deets.result + ' wins!',
+                'Game over.',
+                'success'
+            )
+        }
+    }
+
+    $(document).ready(function () {
+        document.addEventListener("keydown", function (e) {
+            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+                e.preventDefault();
+                $("form").submit()
+            }
+        }, false);
+        $(".padder").height($('.form-group').outerHeight(true))
+        window.image_base = "{% static 'img' %}/";
+        paper.install(window);
+        paper.setup('renderCanvas')
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        window.uuidv4 = uuidv4;
+        let gameSocket = new WebSocket('ws://' + window.location.host + '/ws/game/' + window.uuidv4() + '/')
+        gameSocket.onmessage = function (e) {
+            let data = JSON.parse(e.data);
+            switch (data.command) {
+                case "render":
+                    render(data)
+                    break;
+                case "legal":
+                    render_legal(data)
+                    break;
+                case "game_over":
+                    set_game_over(data)
+                    break;
+                default:
+                    console.log(data);
+                    console.log('oof we dead');
+                    break;
+            }
+        }
+        gameSocket.onclose = function (e) {
+            console.log('oops');
+        }
+        gameSocket.onopen = function (e) {
+            window.sock.send(JSON.stringify({ 'action': 'initialize_game', id: parseInt("{{ game_model.id }}") }))
+        }
+        window.sock = gameSocket;
+    });
+</script>
+{% endblock %}

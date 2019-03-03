@@ -23,3 +23,6 @@ __pycache__
 .Trashes
 ehthumbs.db
 Thumbs.dbThumbs.db
+
+.vscode/
+**.sqlite3

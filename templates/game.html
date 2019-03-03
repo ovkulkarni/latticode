@@ -1,0 +1,94 @@
+<head>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.0/paper-full.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.0/paper-core.js"></script>
+    <script>
+        paper.install(window);
+        window.onload = function () {
+            paper.setup('myCanvas');
+            // Create a simple drawing tool:
+            let board = new Path.Rectangle(100, 100, 300, 300);
+            board.strokeColor = 'black';
+            let rectangles = [];
+            for (let i = 100; i < 400; i += 100) {
+                for (let j = 100; j < 400; j += 100) {
+                    let rect = new Path.Rectangle(i, j, 100, 100);
+                    rect.strokeWidth = 0;
+                    if (((i + j) / 100) % 2 == 0) {
+                        rect.fillColor = '#a3b4a2';
+                    }
+                    else {
+                        rect.fillColor = '#38686a';
+                    }
+                    rect.onMouseEnter = function (e) {
+                        rect.strokeColor = 'yellow';
+                        rect.strokeWidth = 2;
+                    }
+                    rect.onMouseLeave = function (e) {
+                        rect.strokeWidth = 0;
+                    }
+                    rectangles.push(rect);
+                }
+            }
+            let sideline = new Path.Rectangle(500, 100, 100, 300);
+            sideline.strokeColor = 'black';
+            let imgs = ['x', 'o'];
+            for (let index in imgs) {
+                let name = imgs[index];
+                let raster = new Raster(name, 550, 150 + index * 100);
+                // raster.position = view.center;
+                raster.scale(0.3);
+                raster.bringToFront();
+                raster.onMouseEnter = function (e) {
+                    console.log('here')
+                    raster.scale(1.05);
+                }
+                raster.onMouseLeave = function (e) {
+                    raster.scale(1 / 1.05)
+                }
+                raster.onClick = function (e) {
+                    let curr = raster.clone();
+                    curr.bringToFront();
+                    for (let i in rectangles) {
+                        let r = rectangles[i];
+                        r.onClick = function (e) {
+                            curr.position = r.position;
+                            r.onMouseEnter = undefined;
+                            r.onMouseLeave = undefined;
+                            r.strokeWidth = 0;
+                            curr.scale(1.05);
+                            for (let r2 of rectangles) {
+                                r2.onClick = undefined;
+                            }
+                            curr.onMouseLeave = function (e) {
+                                curr.scale(1 / 1.05);
+                                curr.onMouseLeave = undefined;
+                            }
+                            rectangles.splice(i, 1)
+                        }
+                    }
+                }
+            }
+            view.draw();
+        }
+    </script>
+    <style>
+        #myCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background: url('bg.png');
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="myCanvas" resize></canvas>
+    <img src="./O.png" id="o" class="hidden" />
+    <img src="./X.png" id="x" class="hidden" />
+</body>
