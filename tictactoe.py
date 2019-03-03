@@ -13,7 +13,7 @@ brd.add_sidelined_piece('O', count=game.INFINITY)
 
 
 def legal_moves(piece, board, player):
-    if piece.name == player.name:
+    if piece.name == player.name and piece.loc == None:
         return board.open_spaces()
     return []
 
