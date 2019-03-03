@@ -210,7 +210,10 @@ class Board():
             if self[pointer] is None:
                 yield pointer, seen != 0
             else:
-                seen += 1
+                if self[pointer][0] != self[loc][0]:
+                    seen += 1
+                else:
+                    seen = 2  # break
             pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
 
 
