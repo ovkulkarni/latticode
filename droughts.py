@@ -114,10 +114,10 @@ def check_status(game, board):
     elif not black_pieces:
         return 'White'
 
-    if all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in white_pieces):
-        return 'Black'
-    elif all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in black_pieces):
-        return 'White'
+    # if all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in white_pieces):
+    #     return 'Black'
+    # elif all(len(list(legal_moves(p, pl, board))) == 0 for p, pl in black_pieces):
+    #     return 'White'
 
     return latticode.ONGOING
 
