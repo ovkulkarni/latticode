@@ -16,6 +16,14 @@ def in_bounds(pos, dims):
 
 PastElement = namedtuple('PastTuple', 'piece move')
 
+class Move():
+    def __init__(self, loc, movetype=None, **kwargs):
+        self.loc = loc
+        self.movetype = movetype
+        self.__dict__.update(kwargs)
+    def __repr__(self):
+        return str(self.loc) + ("" if self.movetype is None else "_{}".format(self.movetype))
+
 
 class Board():
     def __init__(self, game, x, y, *args):
@@ -221,13 +229,13 @@ class Game():
 
     def set_make_move_function(self, make_move):
         def mm(move, piece):
+            self.mover = make_move(move, piece, self.board, self.mover)
             if piece.loc is None:  # piece just placed
                 self.board.sidelined_pieces[piece.name] -= 1
-
+            piece.loc = move.loc
             piece.moves_made += 1
-            piece.loc = move
             self.board.past.append(PastElement(piece, move))
-            self.mover = make_move(move, piece, self.board, self.mover)
+
         self.make_move_func = mm
 
     def set_check_win_function(self, check_win):
