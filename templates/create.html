@@ -291,7 +291,7 @@
         window.uuidv4 = uuidv4;
         window.room_id = `{% if room_id %}{{ room_id }}{% else %}${window.uuidv4()}{% endif %}`;
         window.my_identifier = window.uuidv4();
-        let gameSocket = new WebSocket((location.protocol === 'https' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + window.room_id + '/?id=' + window.my_identifier);
+        let gameSocket = new WebSocket((window.location.protocol === 'https' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + window.room_id + '/?id=' + window.my_identifier);
         $('#share').attr('href', '/play/' + window.room_id + '/');
         gameSocket.onmessage = function (e) {
             let data = JSON.parse(e.data);
