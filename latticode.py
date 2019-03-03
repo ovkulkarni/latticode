@@ -11,6 +11,10 @@ INFINITY = inf
 Delta = namedtuple('Delta', 'piece_name piece_loc move')
 
 
+def to_moves(moves_tuples):
+    return [Move(t) for t in moves_tuples]
+
+
 class Move():
     def __init__(self, loc, movetype=None, **kwargs):
         self.loc = loc

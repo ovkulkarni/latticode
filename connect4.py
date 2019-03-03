@@ -14,7 +14,7 @@ ttt.add_sidelined_piece('Red', count=latticode.INFINITY)
 
 def legal_moves(piece, piece_loc, board):
     if piece == board.current_player and piece_loc is None:
-        return board.open_spaces_gravity()
+        return latticode.to_moves(board.open_spaces_gravity())
     return []
 
 

@@ -14,13 +14,13 @@ ttt.add_sidelined_piece('O', count=latticode.INFINITY)
 
 def legal_moves(piece, piece_loc, board):
     if piece == board.current_player and piece_loc is None:
-        return board.open_spaces()
+        return latticode.to_moves(board.open_spaces())
     return []
 
 
 def make_move(piece, piece_loc, move, board):
     new_board = board.copy()
-    new_board[move] = piece
+    new_board[move.loc] = piece
     new_board.current_player = 'X' if new_board.current_player == 'O' else 'O'
     return new_board
 
