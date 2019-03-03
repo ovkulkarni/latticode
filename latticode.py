@@ -16,13 +16,13 @@ def to_moves(moves_tuples):
 
 
 class Move():
-    def __init__(self, loc, movetype=None, **kwargs):
+    def __init__(self, loc, move_type=None, **kwargs):
         self.loc = loc
-        self.movetype = movetype
+        self.move_type = move_type
         self.__dict__.update(kwargs)
 
     def __repr__(self):
-        return str(self.loc) + ("" if self.movetype is None else "_{}".format(self.movetype))
+        return str(self.loc) + ("" if self.move_type is None else "_{}".format(self.move_type))
 
 
 class Board():
@@ -41,10 +41,10 @@ class Board():
     def __str__(self):
         assert self.board is not None, "Board has not been created yet."
         format_width = max(map(len, self.game.pieces))
-        fmt = '\t'.join('{{:^{}}}'.format(format_width)
+        fmt = ' '.join('{{:^{}}}'.format(format_width)
                         for _ in range(self.dims[0]))
         table = [fmt.format(
-            *row) for row in [['.' if c is None else c for c in r] for r in self.board]]
+            *row) for row in [['·' if c is None else c for c in r] for r in self.board]]
         return '\n'.join(table)
 
     def __setitem__(self, key, value):
@@ -60,6 +60,7 @@ class Board():
         brd.board = [[c for c in r] for r in self.board]
         brd.sidelined_pieces = self.sidelined_pieces.copy()
         brd.current_player = self.current_player
+        brd.cloneable_attributes = self.cloneable_attributes
 
         brd.__dict__.update({k: deepcopy(self.__dict__[k])
                              for k in self.cloneable_attributes})
@@ -167,8 +168,8 @@ class Board():
     def player_pieces(self, player_name):
         for x in range(self.dims[0]):
             for y in range(self.dims[1]):
-                if self[(x, y)] is not None and self.game.piece_owner[self[(x, y)]] == player_name:
-                    yield self[(x, y)]
+                if self[(y, x)] is not None and self.game.piece_owner[self[(y, x)]] == player_name:
+                    yield (self[(y, x)], (y, x))
 
     def all_filled(self):
         for x in range(self.dims[0]):
