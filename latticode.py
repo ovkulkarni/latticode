@@ -11,8 +11,8 @@ INFINITY = inf
 Delta = namedtuple('Delta', 'piece_name piece_loc move')
 
 
-def to_moves(loc_tuples):
-    return [Move(t) for t in loc_tuples]
+def to_moves(loc_tuples, **kwargs):
+    return [Move(t, **kwargs) for t in loc_tuples]
 
 
 def to_locs(move_objs):
