@@ -36,8 +36,12 @@ class Board():
 
     def __str__(self):
         assert self.board is not None, "Board has not been created yet."
-        return "\n".join(' '.join('.' if x is None else str(x) for x in r)
-                         for r in self.board)
+        format_width = max(map(len, self.game.pieces))
+        fmt = '\t'.join('{{:^{}}}'.format(format_width)
+                        for _ in range(self.dims[0]))
+        table = [fmt.format(
+            *row) for row in [['.' if c is None else c for c in r] for r in self.board]]
+        return '\n'.join(table)
 
     def __setitem__(self, key, value):
         assert self.board is not None, "Board has not been created yet."
