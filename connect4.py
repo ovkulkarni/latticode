@@ -25,17 +25,16 @@ def make_move(piece, piece_loc, move, board):
     return new_board
 
 
-def check_win(board, player):
-    if board.in_row(length=4, piece=player):
-        return True
-    if board.in_col(length=4, piece=player):
-        return True
-    elif board.in_diag(length=4, piece=player):
-        return True
-    return False
+def check_status(game, board):
+    for player in game.players:
+        if board.in_line(4, player):
+            return player
+    if board.all_filled():
+        return latticode.TIE
+    return latticode.ONGOING
 
 
 ttt.set_initial_player('Blue')
 ttt.set_legal_moves_function(legal_moves)
 ttt.set_make_move_function(make_move)
-ttt.set_check_win_function(check_win)
+ttt.set_check_status_function(check_status)

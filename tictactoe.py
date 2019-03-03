@@ -1,6 +1,6 @@
 import latticode
 
-ttt = latticode.Game('Tic Tac Two')
+ttt = latticode.Game('Tic Tac Toe')
 brd = ttt.create_board(3, 3)
 ttt.create_players('X', 'O')
 
@@ -25,35 +25,16 @@ def make_move(piece, piece_loc, move, board):
     return new_board
 
 
-def check_win(board, player):
-    if board.in_row(length=3, piece=player):
-        return True
-    if board.in_col(length=3, piece=player):
-        return True
-    elif board.in_diag(length=3, piece=player):
-        return True
-    return False
+def check_status(game, board):
+    for player in game.players:
+        if board.in_line(3, player):
+            return player
+    if board.all_filled():
+        return latticode.TIE
+    return latticode.ONGOING
 
 
 ttt.set_initial_player('X')
 ttt.set_legal_moves_function(legal_moves)
 ttt.set_make_move_function(make_move)
-ttt.set_check_win_function(check_win)
-
-
-# print(ttt.board)
-# for p in ttt.board.sidelined_pieces:
-#     print(p, ttt.legal_moves_func(p, None))
-
-# ttt.make_move_func('X', None, (0, 0))
-# print(ttt.board)
-
-# for p in ttt.board.sidelined_pieces:
-#     print(p, ttt.legal_moves_func(p, None))
-
-# ttt.make_move_func('X', None, (1, 1))
-# ttt.make_move_func('X', None, (2, 2))
-# print(ttt.board)
-
-# print(ttt.check_win_func('X'))
-# print(ttt.past)
+ttt.set_check_status_function(check_status)

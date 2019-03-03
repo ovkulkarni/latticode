@@ -4,6 +4,8 @@ from collections import defaultdict, namedtuple
 
 ### CONSTANTS ###
 EMPTY_BOARD = 0
+TIE = 'tie'
+ONGOING = 'ongoing'
 INFINITY = inf
 
 Delta = namedtuple('Delta', 'piece_name piece_loc move')
@@ -126,6 +128,15 @@ class Board():
                 return True
         return False
 
+    def in_line(self, length, piece):
+        if self.in_row(length=3, piece=piece):
+            return True
+        if self.in_col(length=3, piece=piece):
+            return True
+        elif self.in_diag(length=3, piece=piece):
+            return True
+        return False
+
     def move_in_dir(self, loc, delta):
         if self.in_bounds((loc[0] + delta[0], loc[1] + delta[1])):
             return (loc[0] + delta[0], loc[1] + delta[1])
@@ -150,6 +161,13 @@ class Board():
             for y in range(self.dims[1]):
                 if self[(x, y)] is not None and self.game.piece_owner[self[(x, y)]] == player_name:
                     yield self[(x, y)]
+
+    def all_filled(self):
+        for x in range(self.dims[0]):
+            for y in range(self.dims[1]):
+                if self.board[y][x] is None:
+                    return False
+        return True
 
 
 class Game():
@@ -215,7 +233,7 @@ class Game():
             self.past.append(Delta(piece, piece_loc, move))
         self.make_move_func = mm
 
-    def set_check_win_function(self, check_win):
-        def wf(player):
-            return check_win(self.board, player)
-        self.check_win_func = wf
+    def set_check_status_function(self, check_status):
+        def wf():
+            return check_status(self, self.board)
+        self.check_status_func = wf
