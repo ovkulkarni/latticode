@@ -5,7 +5,7 @@ brd = ttt.create_board(3, 3)
 ttt.create_players('X', 'O')
 
 ttt.create_piece('X', sprite='X')
-ttt.create_piece('O', sprite='O')
+ttt.create_piece('O', sprite='O') 
 
 ttt.set_initial_state(latticode.EMPTY_BOARD)
 ttt.add_sidelined_piece('X', count=latticode.INFINITY)
