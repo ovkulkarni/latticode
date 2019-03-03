@@ -42,7 +42,7 @@ class Board():
         assert self.board is not None, "Board has not been created yet."
         format_width = max(map(len, self.game.pieces))
         fmt = ' '.join('{{:^{}}}'.format(format_width)
-                        for _ in range(self.dims[0]))
+                       for _ in range(self.dims[0]))
         table = [fmt.format(
             *row) for row in [['·' if c is None else c for c in r] for r in self.board]]
         return '\n'.join(table)
@@ -138,11 +138,11 @@ class Board():
         return False
 
     def in_line(self, length, piece):
-        if self.in_row(length=3, piece=piece):
+        if self.in_row(length, piece):
             return True
-        if self.in_col(length=3, piece=piece):
+        if self.in_col(length, piece):
             return True
-        elif self.in_diag(length=3, piece=piece):
+        elif self.in_diag(length, piece):
             return True
         return False
 
@@ -177,6 +177,14 @@ class Board():
                 if self.board[y][x] is None:
                     return False
         return True
+
+    def capture_diag(self, piece_loc, move):
+        delta = (1 if piece_loc[0] - move[0] < 0 else -1,
+                 1 if piece_loc[1] - move[1] < 0 else -1)
+        pointer = piece_loc
+        while (pointer != move):
+            self.board[pointer[0]][pointer[1]] = None
+            pointer = (pointer[0] + delta[0], pointer[1] + delta[1])
 
 
 class Game():
